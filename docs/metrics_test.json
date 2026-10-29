@@ -1,0 +1,76 @@
+{
+  "split": "test",
+  "images": 141,
+  "conf": 0.001,
+  "mAP50": 0.5286,
+  "mAP50_95": 0.2653,
+  "per_class": {
+    "helmet": {
+      "precision": 0.903,
+      "recall": 0.922,
+      "AP50": 0.951,
+      "AP50_95": 0.505
+    },
+    "gloves": {
+      "precision": 0.734,
+      "recall": 0.785,
+      "AP50": 0.779,
+      "AP50_95": 0.39
+    },
+    "vest": {
+      "precision": 0.748,
+      "recall": 0.871,
+      "AP50": 0.909,
+      "AP50_95": 0.574
+    },
+    "boots": {
+      "precision": 0.716,
+      "recall": 0.711,
+      "AP50": 0.749,
+      "AP50_95": 0.396
+    },
+    "goggles": {
+      "precision": 0.681,
+      "recall": 0.823,
+      "AP50": 0.788,
+      "AP50_95": 0.318
+    },
+    "none": {
+      "precision": 0.44,
+      "recall": 0.523,
+      "AP50": 0.433,
+      "AP50_95": 0.131
+    },
+    "Person": {
+      "precision": 0.756,
+      "recall": 0.835,
+      "AP50": 0.812,
+      "AP50_95": 0.471
+    },
+    "no_helmet": {
+      "precision": 0.224,
+      "recall": 0.175,
+      "AP50": 0.164,
+      "AP50_95": 0.057
+    },
+    "no_goggle": {
+      "precision": 0.559,
+      "recall": 0.079,
+      "AP50": 0.109,
+      "AP50_95": 0.042
+    },
+    "no_gloves": {
+      "precision": 0.251,
+      "recall": 0.069,
+      "AP50": 0.104,
+      "AP50_95": 0.03
+    },
+    "no_boots": {
+      "precision": 1.0,
+      "recall": 0.0,
+      "AP50": 0.017,
+      "AP50_95": 0.003
+    }
+  },
+  "model": "models/ppe_yolo11s.pt (best.pt, yolo11s, early-stopped at epoch 50, best epoch 30)"
+}

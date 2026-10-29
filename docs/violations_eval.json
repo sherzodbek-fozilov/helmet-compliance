@@ -1,0 +1,67 @@
+{
+  "rule": {
+    "violators": 41,
+    "compliant": 160,
+    "skipped_unlabeled_heads": 35,
+    "tp": 37,
+    "fp_on_compliant": 7,
+    "fp_elsewhere": 14,
+    "fn": 4,
+    "violators_missed_because_person_not_detected": 4,
+    "precision": 0.638,
+    "recall": 0.902,
+    "f1": 0.747,
+    "false_alarm_rate_on_compliant": 0.044
+  },
+  "no_helmet": {
+    "violators": 41,
+    "compliant": 160,
+    "skipped_unlabeled_heads": 35,
+    "tp": 5,
+    "fp_on_compliant": 0,
+    "fp_elsewhere": 0,
+    "fn": 36,
+    "violators_missed_because_person_not_detected": 4,
+    "precision": 1.0,
+    "recall": 0.122,
+    "f1": 0.217,
+    "false_alarm_rate_on_compliant": 0.0
+  },
+  "rule_or_no_helmet": {
+    "violators": 41,
+    "compliant": 160,
+    "skipped_unlabeled_heads": 35,
+    "tp": 37,
+    "fp_on_compliant": 7,
+    "fp_elsewhere": 14,
+    "fn": 4,
+    "violators_missed_because_person_not_detected": 4,
+    "precision": 0.638,
+    "recall": 0.902,
+    "f1": 0.747,
+    "false_alarm_rate_on_compliant": 0.044
+  },
+  "no_helmet_best_threshold": {
+    "threshold": 0.15,
+    "violators": 41,
+    "compliant": 160,
+    "skipped_unlabeled_heads": 35,
+    "tp": 27,
+    "fp_on_compliant": 2,
+    "fp_elsewhere": 3,
+    "fn": 14,
+    "violators_missed_because_person_not_detected": 4,
+    "precision": 0.844,
+    "recall": 0.659,
+    "f1": 0.74,
+    "false_alarm_rate_on_compliant": 0.013
+  },
+  "settings": {
+    "split": "test",
+    "images": 141,
+    "person_conf": 0.45,
+    "helmet_conf": 0.5,
+    "head_zone_ratio": 0.35,
+    "iou_match": 0.5
+  }
+}
