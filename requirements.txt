@@ -1,0 +1,6 @@
+ultralytics>=8.4.53
+opencv-python>=4.8
+numpy>=1.24
+flask>=3.0
+matplotlib>=3.7
+lap>=0.5.12

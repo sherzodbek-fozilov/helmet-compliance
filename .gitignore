@@ -1,0 +1,26 @@
+# python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# weights: download from Releases
+models/*.pt
+models/*.pth
+*.pt
+*.pth
+
+# runtime output (contains photos of people)
+output/
+input_videos/
+frames_to_label/
+
+# local training / evaluation runs
+runs/
+datasets/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
