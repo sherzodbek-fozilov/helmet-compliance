@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div class="card__title" style="margin-bottom:0;">
+          Журнал нарушителей
+          <span class="badge">{{ total }}</span>
+        </div>
+      </div>
+
+      <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Период от</label>
+          <input type="date" name="date_from" value="{{ date_from }}" style="width:160px;">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>До</label>
+          <input type="date" name="date_to" value="{{ date_to }}" style="width:160px;">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Источник</label>
+          <input type="text" name="source" value="{{ source_f }}" placeholder="camera или имя файла" style="width:200px;">
+        </div>
+        
+        <a class="btn btn-secondary" href="{{ url_for('persons_journal') }}">Сбросить</a>
+      </form>
+
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Фото</th>
+            <th>ID</th>
+            <th>Первое появление</th>
+            <th>Последнее появление</th>
+            <th>Источник</th>
+            <th>Нарушений</th>
+            <th>Уверенность</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in persons %}
+        <tr>
+          <td>
+            {% if p['crop_image_path'] %}
+              <img class="preview" src="{{ url_for('person_crop', person_id=p['id']) }}">
+            {% else %}
+              <div class="avatar-ph">нет фото</div>
+            {% endif %}
+          </td>
+          <td><span class="badge badge-run"># {{ p['id'] }}</span></td>
+          <td>{{ p['first_seen'] }}</td>
+          <td>{{ p['last_seen'] }}</td>
+          <td>{{ p['source'] }}</td>
+          <td>
+            {% if p['violation_count'] > 0 %}
+              <span class="badge badge-danger">{{ p['violation_count'] }}</span>
+            {% else %}0{% endif %}
+          </td>
+          <td>{{ '%.2f' % p['best_confidence'] }}</td>
+          <td><a class="btn btn-secondary" href="{{ url_for('person_detail', person_id=p['id']) }}">Подробнее</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8"><div class="empty">Нарушений не зафиксировано.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    
+{% endblock %}

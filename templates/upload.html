@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="card">
+      <div class="card__title">Новая обработка</div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="file" onclick="selTab('file')">Видеофайл</div>
+        <div class="tab"        data-tab="camera" onclick="selTab('camera')">Камера / RTSP</div>
+      </div>
+      <input type="hidden" name="_tab" id="_tab" value="file">
+
+      <form method="post" enctype="multipart/form-data" id="mainForm">
+        <input type="hidden" name="mode" id="mode" value="file">
+
+        <div class="form-grid">
+          <!-- левая колонка: источник -->
+          <div>
+            <div class="tab-block active" id="block-file">
+              <div class="section-label">Источник</div>
+              <div class="field">
+                <label>Видеофайл</label>
+                <input type="file" name="video" accept="video/*">
+              </div>
+              <label class="checkbox-row">
+                <input type="checkbox" name="live_preview" checked>
+                Показывать обработку в Live-режиме
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" name="save_annotated_video" checked>
+                Сохранить аннотированное видео
+              </label>
+            </div>
+
+            <div class="tab-block" id="block-camera">
+              <div class="section-label">Источник</div>
+
+              <!-- Найденные камеры -->
+              <div class="field">
+                <label>Подключённые камеры</label>
+           
+                <button type="button" class="btn btn-secondary" onclick="scanCameras()" id="scanBtn">
+                  Найти камеры
+                </button>
+              </div>
+
+              <!-- Ручной ввод -->
+              <div class="field" style="margin-top:4px;">
+                <label>Или введите адрес вручную</label>
+                <input type="text" name="camera_source" id="cameraSource" value="0"
+                       placeholder="0  или  rtsp://192.168.1.10/stream  или  http://...">
+                <div class="hint">
+                  0, 1... — USB/встроенная камера &nbsp;|&nbsp;
+                  rtsp://... — IP-камера &nbsp;|&nbsp;
+                  http://192.168.x.x:8080/video — телефон (IP Webcam)
+                </div>
+              </div>
+
+              <!-- Подсказка телефон -->
+   
+            </div>
+          </div>
+
+          <!-- правая колонка: параметры -->
+          <div>
+            <div class="section-label">Параметры</div>
+            <div class="field">
+              <label>Модель детекции</label>
+              <select name="model_path">
+                {% for m in models %}
+                <option value="{{ m.path }}" {{ 'selected' if m.primary else '' }}>{{ m.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>Отображение</label>
+              <select name="display_mode">
+                <option value="both">Каска и человек</option>
+                <option value="helmet">Только каска</option>
+                <option value="person">Только человек</option>
+              </select>
+              
+            </div>
+            <div class="field">
+              <label>Порог уверенности</label>
+              <input type="number" step="0.01" min="0.1" max="1" name="confidence_threshold" value="0.45">
+              <div class="hint">Рекомендуемый диапазон: 0.40 — 0.55</div>
+            </div>
+            <label class="checkbox-row">
+              <input type="checkbox" name="use_tracking" checked>
+              Трекинг объектов (ByteTrack)
+            </label>
+            <div class="field" style="margin-top:8px;">
+              <label>Файл трекера</label>
+              <input type="text" name="tracker" value="bytetrack.yaml">
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button type="submit" class="btn btn-primary">Запустить</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      function selTab(t) {
+        document.getElementById('mode').value = t;
+        document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.tab === t));
+        document.getElementById('block-file').classList.toggle('active', t === 'file');
+        document.getElementById('block-camera').classList.toggle('active', t === 'camera');
+      }
+
+      function scanCameras() {
+        const btn = document.getElementById('scanBtn');
+        const list = document.getElementById('camList');
+        btn.textContent = 'Сканирование...';
+        btn.disabled = true;
+        list.innerHTML = '<div style="font-size:12px;color:var(--muted);">Проверяем камеры...</div>';
+
+        fetch('/api/cameras')
+          .then(r => r.json())
+          .then(data => {
+            btn.textContent = 'Найти камеры';
+            btn.disabled = false;
+            if (!data.cameras || data.cameras.length === 0) {
+              list.innerHTML = '<div style="font-size:12px;color:var(--muted);">Камеры не найдены. Введите адрес вручную.</div>';
+              return;
+            }
+            list.innerHTML = '';
+            data.cameras.forEach(cam => {
+              const row = document.createElement('label');
+              row.className = 'checkbox-row';
+              row.style.cssText = 'cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);margin:0;';
+              row.innerHTML = `
+                <input type="radio" name="_camPick" style="accent-color:var(--accent);width:15px;height:15px;"
+                       onchange="document.getElementById('cameraSource').value='${cam.index}'">
+                <span>
+                  <b style="font-size:13px;">${cam.label}</b>
+                  <span style="color:var(--muted);font-size:12px;"> — индекс ${cam.index}</span>
+                </span>
+              `;
+              list.appendChild(row);
+            });
+            // автовыбор первой
+            const first = list.querySelector('input[type=radio]');
+            if (first) { first.checked = true; first.dispatchEvent(new Event('change')); }
+          })
+          .catch(() => {
+            btn.textContent = 'Найти камеры';
+            btn.disabled = false;
+            list.innerHTML = '<div style="font-size:12px;color:var(--muted);">Ошибка сканирования. Введите адрес вручную.</div>';
+          });
+      }
+    </script>
+    
+{% endblock %}

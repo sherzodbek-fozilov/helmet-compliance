@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="card__title" style="margin-bottom:0;">
+          Обработка в реальном времени
+          <span class="badge badge-run">{{ label }}</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <a class="btn btn-secondary" href="{{ url_for('zone_editor') }}">Зона исключения</a>
+          <a class="btn btn-danger"    href="{{ url_for('live_stop') }}">Остановить</a>
+        </div>
+      </div>
+      <div class="stream-wrap">
+        <img src="{{ url_for('live_feed') }}" alt="поток">
+      </div>
+    </div>
+    
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="card">
+      <div class="card__title">Зона исключения</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Нарисуйте прямоугольник там, где каска не обязательна (проход, бытовка). Люди, стоящие внутри, не считаются нарушителями.</p>
+
+
+      <div class="zone-wrap" id="zoneWrap">
+        <img id="bgImg" src="{{ url_for('live_feed') }}" alt="кадр" onload="onImgLoad()">
+        <canvas id="zoneCanvas"></canvas>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary"   onclick="applyZone()">Применить</button>
+        <button class="btn btn-secondary" onclick="clearZone()">Сбросить зону</button>
+        <a      class="btn btn-secondary" href="{{ url_for('live_view', kind=kind) }}">Назад к трансляции</a>
+        <span id="zoneStatus" style="font-size:13px;color:var(--muted);align-self:center;"></span>
+      </div>
+
+      {% if has_zone %}
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+        Зона исключения активна: нарушения внутри не фиксируются
+      </p>
+      {% endif %}
+    </div>
+
+    <script>
+    const canvas = document.getElementById('zoneCanvas');
+    const ctx    = canvas.getContext('2d');
+    const img    = document.getElementById('bgImg');
+
+    let natW = 640, natH = 480;
+    let rect = null;
+    let drawing = false, startX = 0, startY = 0;
+
+    const existingZone = {{ current_zone | tojson }};
+    if (existingZone.length >= 2) {
+      const xs = existingZone.map(p => p[0]);
+      const ys = existingZone.map(p => p[1]);
+      rect = { x: Math.min(...xs), y: Math.min(...ys),
+               w: Math.max(...xs) - Math.min(...xs),
+               h: Math.max(...ys) - Math.min(...ys) };
+    }
+
+    function onImgLoad() {
+      natW = img.naturalWidth  || 640;
+      natH = img.naturalHeight || 480;
+      canvas.width  = natW;
+      canvas.height = natH;
+      redraw();
+    }
+    img.addEventListener('load', onImgLoad);
+
+    function clientToNat(cx, cy) {
+      const r = canvas.getBoundingClientRect();
+      return [
+        Math.round((cx - r.left) * natW / r.width),
+        Math.round((cy - r.top)  * natH / r.height)
+      ];
+    }
+
+    canvas.addEventListener('mousedown', e => {
+      [startX, startY] = clientToNat(e.clientX, e.clientY);
+      drawing = true;
+      rect = null;
+    });
+    canvas.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      const [cx, cy] = clientToNat(e.clientX, e.clientY);
+      rect = { x: Math.min(startX,cx), y: Math.min(startY,cy),
+               w: Math.abs(cx-startX), h: Math.abs(cy-startY) };
+      redraw();
+    });
+    canvas.addEventListener('mouseup', () => { drawing = false; });
+
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!rect || rect.w < 4 || rect.h < 4) return;
+
+      // Полупрозрачная заливка жёлтым
+      ctx.fillStyle = 'rgba(255,200,0,0.20)';
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+
+      // Яркая рамка
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth   = 3;
+      ctx.setLineDash([]);
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+      // Угловые маркеры
+      [[rect.x,rect.y],[rect.x+rect.w,rect.y],
+       [rect.x+rect.w,rect.y+rect.h],[rect.x,rect.y+rect.h]].forEach(([px,py]) => {
+        ctx.beginPath();
+        ctx.arc(px, py, 6, 0, 2*Math.PI);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      // Подпись размера
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(rect.w + ' x ' + rect.h, rect.x + 6, rect.y - 6);
+    }
+
+    function rectToPolygon() {
+      if (!rect) return [];
+      return [
+        [rect.x, rect.y], [rect.x+rect.w, rect.y],
+        [rect.x+rect.w, rect.y+rect.h], [rect.x, rect.y+rect.h]
+      ];
+    }
+
+    function applyZone() {
+      const poly = rectToPolygon();
+      if (poly.length < 4) {
+        document.getElementById('zoneStatus').textContent = 'Сначала нарисуйте прямоугольник.';
+        return;
+      }
+      fetch('/zone_set', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({polygon: poly}) })
+        .then(r => r.json()).then(d => {
+          document.getElementById('zoneStatus').textContent =
+            d.ok ? 'Зона применена.' : ('Ошибка: ' + d.error);
+        });
+    }
+
+    function clearZone() {
+      rect = null; redraw();
+      fetch('/zone_set', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({polygon: []}) })
+        .then(r => r.json()).then(() => {
+          document.getElementById('zoneStatus').textContent = 'Зона сброшена.';
+        });
+    }
+
+    onImgLoad();
+    </script>
+    
+{% endblock %}

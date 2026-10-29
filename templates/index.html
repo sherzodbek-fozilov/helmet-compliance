@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block content %}
+    <!-- Метрики сверху -->
+    <div class="metrics" style="margin-bottom:20px;">
+      <div class="metric">
+        <div class="metric__label">Всего обработок</div>
+        <div class="metric__value">{{ stats.total_runs }}</div>
+      </div>
+      <div class="metric">
+        <div class="metric__label">Всего нарушений</div>
+        <div class="metric__value" style="color:{% if stats.total_violations > 0 %}var(--danger){% else %}var(--ok){% endif %};">
+          {{ stats.total_violations }}
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric__label">Нарушений сегодня</div>
+        <div class="metric__value" style="color:{% if stats.today_violations > 0 %}var(--danger){% else %}var(--ok){% endif %};">
+          {{ stats.today_violations }}
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric__label">Обработано кадров</div>
+        <div class="metric__value">{{ '{:,}'.format(stats.total_frames).replace(',', ' ') }}</div>
+      </div>
+      <div class="metric">
+        <div class="metric__label">Активных сеансов</div>
+        <div class="metric__value" style="color:{% if stats.live_count > 0 %}var(--accent){% else %}var(--muted){% endif %};">
+          {{ stats.live_count }}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;">
+
+      <!-- График нарушений по дням -->
+      <div class="card" style="padding-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div class="card__title" style="margin-bottom:0;">Нарушения за 7 дней</div>
+          <a class="btn btn-primary" href="{{ url_for('upload') }}">Новая обработка</a>
+        </div>
+        <canvas id="violChart" height="90"></canvas>
+      </div>
+
+      <!-- Последние нарушения -->
+      <div class="card">
+        <div class="card__title">Последние события</div>
+        {% if stats.recent_violations %}
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          {% for v in stats.recent_violations %}
+          <div style="display:flex;gap:10px;align-items:center;">
+            {% if v.frame_image_path %}
+            <a href="{{ url_for('run_detail', run_id=v.run_id) }}" style="flex-shrink:0;">
+              <img src="{{ url_for('download_file', path=v.frame_image_path) }}"
+                   style="width:56px;height:42px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">
+            </a>
+            {% else %}
+            <div style="width:56px;height:42px;background:var(--bg);border-radius:6px;border:1px solid var(--border);flex-shrink:0;"></div>
+            {% endif %}
+            <div style="min-width:0;">
+              <div style="font-size:12px;font-weight:600;color:var(--danger);">{{ v.class_name }}</div>
+              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                {{ v.timestamp[:16] if v.timestamp else '—' }}
+              </div>
+              <div style="font-size:11px;color:var(--muted);">
+                Запуск #{{ v.run_id }} &nbsp;·&nbsp; conf {{ '%.2f'|format(v.confidence) }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty" style="padding:20px 0;">Нарушений пока нет</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Таблица запусков -->
+    <div class="card">
+      <div class="card__title">История обработок</div>
+      {% if runs %}
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Видеофайл</th>
+            <th>Кадров</th>
+            <th>Нарушений</th>
+            <th>FPS</th>
+            <th>Статус</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for run in runs %}
+        <tr>
+          <td><span class="badge badge-run"># {{ run.id }}</span></td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+              title="{{ run.video_file }}">{{ run.video_name }}</td>
+          <td>{{ run.processed_frames }}</td>
+          <td>
+            {% if run.violations_count > 0 %}
+              <span class="badge badge-danger">{{ run.violations_count }}</span>
+            {% else %}
+              <span class="badge badge-ok">0</span>
+            {% endif %}
+          </td>
+          <td>{{ run.avg_processing_fps or '—' }}</td>
+          <td>
+            {% if run.status == 'finished' %}<span class="status-ok">Завершён</span>
+            {% elif run.status == 'failed'  %}<span class="status-failed">Ошибка</span>
+            {% elif run.status == 'running' %}<span style="color:var(--accent);font-weight:600;">Активен</span>
+            {% else %}<span>{{ run.status }}</span>{% endif %}
+          </td>
+          <td><a class="btn btn-secondary" href="{{ url_for('run_detail', run_id=run.id) }}">Открыть</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty">Обработок ещё не было. Нажмите «Новая обработка».</div>
+      {% endif %}
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+    const labels = {{ stats.chart_labels | tojson }};
+    const violData = {{ stats.chart_violations | tojson }};
+    const runsData = {{ stats.chart_runs | tojson }};
+
+    new Chart(document.getElementById('violChart'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Нарушения',
+            data: violData,
+            backgroundColor: 'rgba(255, 0, 0)',
+            borderRadius: 5,
+            order: 1,
+          },
+          {
+            label: 'Обработок',
+            data: runsData,
+            type: 'line',
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.08)',
+            pointBackgroundColor: '#2563eb',
+            pointRadius: 4,
+            tension: 0.3,
+            fill: true,
+            order: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 14 } },
+          tooltip: { bodyFont: { size: 12 } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, font: { size: 12 } },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          }
+        }
+      }
+    });
+    </script>
+    
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+        <div>
+          <div class="card__title" style="margin-bottom:4px;">
+            Запуск #{{ run.id }}
+            {% if run.status == 'finished' %}<span class="badge badge-ok">Завершён</span>
+            {% elif run.status == 'failed' %}<span class="badge badge-danger">Ошибка</span>
+            {% endif %}
+          </div>
+          <div style="font-size:12px;color:var(--muted);">{{ run.video_file }}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn btn-secondary" href="{{ url_for('export_csv', run_id=run.id) }}">Экспорт нарушений CSV</a>
+          <a class="btn btn-secondary" href="{{ url_for('export_tracks_csv', run_id=run.id) }}">Экспорт треков CSV</a>
+          {% if run.annotated_video_path %}
+          <a class="btn btn-primary" href="{{ url_for('download_file', path=run.annotated_video_path, download=1) }}">Скачать видео</a>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if run.status == 'failed' %}
+      <div class="alert-error">{{ run.error_message }}</div>
+      {% endif %}
+
+      <div class="metrics">
+        <div class="metric"><div class="metric__label">Обработано кадров</div><div class="metric__value">{{ run.processed_frames }}</div></div>
+        <div class="metric"><div class="metric__label">Кадров с детекциями</div><div class="metric__value">{{ run.frames_with_detections }}</div></div>
+        <div class="metric"><div class="metric__label">Кадров с нарушениями</div><div class="metric__value">{{ run.frames_with_violations }}</div></div>
+        <div class="metric"><div class="metric__label">Уникальных нарушений</div><div class="metric__value">{{ run.violations_count }}</div></div>
+        <div class="metric"><div class="metric__label">Сохранено кадров</div><div class="metric__value">{{ run.saved_violation_frames }}</div></div>
+        <div class="metric"><div class="metric__label">Средний FPS</div><div class="metric__value">{{ run.avg_processing_fps or '—' }}</div></div>
+      </div>
+    </div>
+
+    {% if run.annotated_video_path %}
+    <div class="card">
+      <div class="card__title">Аннотированное видео</div>
+      <video controls preload="metadata" src="{{ url_for('download_file', path=run.annotated_video_path) }}"></video>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card__title">
+        События нарушений
+        <span class="badge">{{ violations|length }}</span>
+      </div>
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Кадр</th><th>Время, сек</th><th>Класс</th>
+            <th>Уверенность</th><th>Track ID</th><th>Снимок</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for v in violations %}
+        <tr>
+          <td>{{ v.frame_number }}</td>
+          <td>{{ v.time_seconds }}</td>
+          <td>{{ v.class_name }}</td>
+          <td>{{ v.confidence }}</td>
+          <td>{{ v.track_id if v.track_id is not none else '—' }}</td>
+          <td>
+            {% if v.frame_image_path %}
+              <a href="{{ url_for('download_file', path=v.frame_image_path) }}" target="_blank">
+                <img class="preview" src="{{ url_for('download_file', path=v.frame_image_path) }}">
+              </a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not violations %}
+        <tr><td colspan="6"><div class="empty">Нарушений не зафиксировано.</div></td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    
+{% endblock %}

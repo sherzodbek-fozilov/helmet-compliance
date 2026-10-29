@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="card">
+      <div class="card__title">Нарушитель #{{ p['id'] }}</div>
+      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px;">
+        {% if p['crop_image_path'] %}
+        <img src="{{ url_for('person_crop', person_id=p['id']) }}"
+             style="width:120px;height:auto;border-radius:8px;border:1px solid var(--border);">
+        {% else %}
+        <div class="avatar-ph" style="width:120px;height:120px;">нет фото</div>
+        {% endif %}
+        <div class="metrics" style="flex:1;margin-bottom:0;">
+          <div class="metric"><div class="metric__label">Первое появление</div><div class="metric__value" style="font-size:15px;">{{ p['first_seen'] }}</div></div>
+          <div class="metric"><div class="metric__label">Последнее появление</div><div class="metric__value" style="font-size:15px;">{{ p['last_seen'] }}</div></div>
+          <div class="metric"><div class="metric__label">Источник</div><div class="metric__value" style="font-size:15px;">{{ p['source'] }}</div></div>
+          <div class="metric"><div class="metric__label">Всего нарушений</div><div class="metric__value">{{ p['violation_count'] }}</div></div>
+          <div class="metric"><div class="metric__label">Векторов ReID</div><div class="metric__value" style="font-size:15px;">{{ vectors }}</div></div>
+        </div>
+      </div>
+      <div class="btn-group" style="margin-top:0;">
+        <a class="btn btn-secondary" href="{{ url_for('persons_journal') }}">Назад к журналу</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__title">События нарушений <span class="badge">{{ events|length }}</span></div>
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Дата и время</th><th>Источник</th><th>Уверенность</th><th>Кадр</th></tr>
+        </thead>
+        <tbody>
+        {% for e in events %}
+        <tr>
+          <td>{{ e['event_time'] }}</td>
+          <td>{{ e['source'] }}</td>
+          <td>{{ '%.2f' % e['confidence'] }}</td>
+          <td>
+            {% if e['frame_path'] %}
+              <a href="{{ url_for('download_file', path=e['frame_path']) }}" target="_blank">
+                <img class="preview" src="{{ url_for('download_file', path=e['frame_path']) }}">
+              </a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    
+{% endblock %}
